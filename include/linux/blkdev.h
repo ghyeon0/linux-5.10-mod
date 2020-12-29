@@ -483,6 +483,8 @@ struct request_queue {
 
 	unsigned int		rq_timeout;
 	int			poll_nsec;
+	int			poll_delay_divide;
+	int			poll_delay_multiply;
 
 	struct blk_stat_callback	*poll_cb;
 	struct blk_rq_stat	poll_stat[BLK_MQ_POLL_STATS_BKTS];
