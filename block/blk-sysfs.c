@@ -18,7 +18,7 @@
 #include "blk-mq-debugfs.h"
 #include "blk-wbt.h"
 
-struct queue_sysfs_entry {
+struct queue_sysfs_entry { 
 	struct attribute attr;
 	ssize_t (*show)(struct request_queue *, char *);
 	ssize_t (*store)(struct request_queue *, const char *, size_t);
@@ -409,6 +409,58 @@ static ssize_t queue_poll_delay_store(struct request_queue *q, const char *page,
 	return count;
 }
 
+static ssize_t queue_poll_delay_divide_show(struct request_queue *q, char *page)
+{
+	int val = q->poll_delay_divide;
+	
+	return sprintf(page, "%d\n", val);
+}
+
+static ssize_t queue_poll_delay_divide_store(struct request_queue *q, const char *page,
+				size_t count)
+{
+	int err, val;
+
+	if (!q->mq_ops || !q->mq_ops->poll)
+		return -EINVAL;
+
+	err = kstrtoint(page, 10, &val);
+	if (err < 0)
+		return err;
+	
+	if (val <= 0)
+		return -EINVAL;
+	else
+		q->poll_delay_divide = val;
+
+	return count;
+}
+static ssize_t queue_poll_delay_multiply_show(struct request_queue *q, char *page)
+{
+	int val = q->poll_delay_multiply;
+
+	return sprintf(page, "%d\n", val);
+}
+
+static ssize_t queue_poll_delay_multiply_store(struct request_queue *q, const char *page,
+				size_t count)
+{
+	int err, val;
+
+	if (!q->mq_ops || !q->mq_ops->poll)
+		return -EINVAL;
+
+	err = kstrtoint(page, 10, &val);
+	if (err < 0)
+		return err;
+	
+	if (val <= 0)
+		return -EINVAL;
+	else
+		q->poll_delay_multiply = val;
+
+	return count;
+}
 static ssize_t queue_poll_show(struct request_queue *q, char *page)
 {
 	return queue_var_show(test_bit(QUEUE_FLAG_POLL, &q->queue_flags), page);
@@ -600,6 +652,9 @@ QUEUE_RO_ENTRY(queue_fua, "fua");
 QUEUE_RO_ENTRY(queue_dax, "dax");
 QUEUE_RW_ENTRY(queue_io_timeout, "io_timeout");
 QUEUE_RW_ENTRY(queue_wb_lat, "wbt_lat_usec");
+QUEUE_RW_ENTRY(queue_poll_delay_divide, "io_poll_delay_divide")
+QUEUE_RW_ENTRY(queue_poll_delay_multiply, "io_poll_delay_multiply")
+
 
 #ifdef CONFIG_BLK_DEV_THROTTLING_LOW
 QUEUE_RW_ENTRY(blk_throtl_sample_time, "throttle_sample_time");
@@ -656,6 +711,8 @@ static struct attribute *queue_attrs[] = {
 	&queue_wb_lat_entry.attr,
 	&queue_poll_delay_entry.attr,
 	&queue_io_timeout_entry.attr,
+	&queue_poll_delay_divide_entry.attr,
+	&queue_poll_delay_multiply_entry.attr,
 #ifdef CONFIG_BLK_DEV_THROTTLING_LOW
 	&blk_throtl_sample_time_entry.attr,
 #endif

@@ -3229,6 +3229,8 @@ struct request_queue *blk_mq_init_allocated_queue(struct blk_mq_tag_set *set,
 	 * Default to classic polling
 	 */
 	q->poll_nsec = BLK_MQ_POLL_CLASSIC;
+	q->poll_delay_divide = 2;
+	q->poll_delay_multiply = 1;
 
 	blk_mq_init_cpu_queues(q, set->nr_hw_queues);
 	blk_mq_add_queue_tag_set(set, q);
@@ -3748,8 +3750,11 @@ static unsigned long blk_mq_poll_nsecs(struct request_queue *q,
 	if (bucket < 0)
 		return ret;
 
-	if (q->poll_stat[bucket].nr_samples)
-		ret = (q->poll_stat[bucket].mean + 1) / 2;
+	if (q->poll_stat[bucket].nr_samples){
+		printk("Divide: %d\n", q->poll_delay_divide);
+		printk("Multiply: %d\n", q->poll_delay_multiply);
+		ret = (q->poll_stat[bucket].mean + 1) / q->poll_delay_divide * q->poll_delay_multiply;
+	}
 
 	return ret;
 }
@@ -3776,6 +3781,7 @@ static bool blk_mq_poll_hybrid_sleep(struct request_queue *q,
 	else
 		nsecs = blk_mq_poll_nsecs(q, rq);
 
+	printk("Sleep Nsecs: %d\n", nsecs);
 	if (!nsecs)
 		return false;
 
